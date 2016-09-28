@@ -11,6 +11,7 @@ import SwiftyJSON
 import Kitura
 import KituraRequest
 import LoggerAPI
+import KituraBot
 
 
 // MARK KituraBotFacebookMessenger
@@ -18,34 +19,41 @@ import LoggerAPI
 /// Implement Facebook Messenger Bot Webhook.
 /// See [Facebook's documentation](https://developers.facebook.com/docs/messenger-platform/implementation#subscribe_app_pages)
 /// for more information.
-public class KituraBotFacebookMessenger {
-    public typealias MessageNotification = (String, String) -> String?
+public class KituraBotFacebookMessenger : KituraBotProtocol {
+    public var channelName: String?
+    public var botProtocolMessageNotificationHandler: BotInternalMessageNotificationHandler?
     
-    private let messageNotification: MessageNotification
     private let appSecret: String
     private let validationToken: String
     public let pageAccessToken: String
+    public let webHookPath: String
     
     /// Initialize a `KituraBotFacebookMessenger` instance.
     ///
     /// - Parameter appSecret: App Secret can be retrieved from the App Dashboard.
     /// - Parameter validationToken: Arbitrary value used to validate a webhook.
     /// - Parameter pageAccessToken: Generate a page access token for your page from the App Dashboard.
-    /// - Parameter path: URI for the webhook.
-    /// - Parameter router: Passed Kitura Router (to add GET and POST REST API for the webhook URI path.
-    public init(appSecret: String, validationToken: String, pageAccessToken: String, webHookPath: String, sendApiPath: String?, router: Router, messageNotification: @escaping (MessageNotification)) {
+    /// - Parameter webHookPath: URI for the webhook.
+    public init(appSecret: String, validationToken: String, pageAccessToken: String, webHookPath: String) {
         self.appSecret = appSecret
         self.validationToken = validationToken
         self.pageAccessToken = pageAccessToken
-        
-        self.messageNotification = messageNotification
+        self.webHookPath = webHookPath
+    }
+    
+    public func configure(router: Router, channelName: String, botProtocolMessageNotificationHandler: @escaping BotInternalMessageNotificationHandler) {
+        self.channelName = channelName
+        self.botProtocolMessageNotificationHandler = botProtocolMessageNotificationHandler
         
         router.get(webHookPath, handler: validateTokenHandler)
         router.post(webHookPath, handler: processRequestHandler)
+    }
+    
+    //Send a text message using the internal Send API.
+    public func sendTextMessage(recipientId: String, messageText: String) {
+        let messageData = ["recipient" : ["id" : recipientId], "message" : ["text" : messageText]]
         
-        if let passedSendApiPath = sendApiPath {
-            router.post(passedSendApiPath, handler: sendMessageHandler)
-        }
+        callSendAPI(messageData: messageData)
     }
     
     
@@ -124,52 +132,7 @@ public class KituraBotFacebookMessenger {
     }
     
     
-    /// Send Message to the Bot client.
-    /// Used for Asyncronous Bot notifications.
-    private func sendMessageHandler(request: RouterRequest, response: RouterResponse, next: @escaping () -> Void) throws {
-        Log.debug("POST - send message")
-        print("POST - send message")
-        
-        var data = Data()
-        if try request.read(into: &data) > 0 {
-            let json = JSON(data: data)
-            if let recipientId = json["recipientId"].string, let messageText = json["messageText"].string, let passedPageAccessToken = json["pageAccessToken"].string {
-                if passedPageAccessToken == pageAccessToken {
-                    sendTextMessage(recipientId: recipientId, messageText: messageText)
-                    try response.status(.OK).end()
-                }
-                else {
-                    Log.debug("Passed pageAccessToken do not match")
-                    print("Passed pageAccessToken do not match")
-                    
-                    try response.status(.badRequest).end()
-                }
-            }
-            else {
-                Log.debug("Send message received NO VALID JSON")
-                print("Send message received NO VALID JSON")
-                
-                try response.status(.badRequest).end()
-            }
-        }
-        else {
-            Log.debug("Send message received NO BODY")
-            print("Send message received NO BODY")
-            
-            try response.status(.badRequest).end()
-        }
-    }
-    
-    
     //PRIVATE Internal Methods for Facebook
-    
-    
-    //Send a text message using the internal Send API.
-    private func sendTextMessage(recipientId: String, messageText: String) {
-        let messageData = ["recipient" : ["id" : recipientId], "message" : ["text" : messageText]]
-        
-        callSendAPI(messageData: messageData)
-    }
     
     
     //Call the Send API. The message data goes in the body. If successful, we'll
@@ -265,9 +228,7 @@ public class KituraBotFacebookMessenger {
                 case "receipt":
                     sendReceiptMessage(recipientId: senderID)
                 default:
-                    if let responseMessage = messageNotification(senderID, msgText) {
-                        sendTextMessage(recipientId: senderID, messageText: responseMessage)
-                    }
+                    botProtocolMessageNotificationHandler?(channelName!, senderID, msgText)
                 }
             }
             else if let _ = message["message"]["attachments"].string {
