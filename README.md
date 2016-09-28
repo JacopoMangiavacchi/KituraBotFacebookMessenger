@@ -1,13 +1,15 @@
 # KituraBotFacebookMessenger
 Swift Kitura Facebook Messenger Webhook implemented according to the KituraBot multi-channel framework.
 
+**Warning: This is work in progress**
+
 Please view KituraBot first at  https://github.com/JacopoMangiavacchi/KituraBot
 
 
 This is a porting on Swift Kitura framework of the Node.js Bot sample described on  Facebook documentation (https://developers.facebook.com/docs/messenger-platform/implementation#subscribe_app_pages)
 
 
-Usage:
+## Usage
 
     //1. Instanciate KituraBot and implement BOT logic
     let bot = KituraBot(router: router) { (channelName: String, senderId: String, message: String) -> String? in
