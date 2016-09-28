@@ -6,7 +6,6 @@ Please view KituraBot first at  https://github.com/JacopoMangiavacchi/KituraBot
 
 This is a porting on Swift Kitura framework of the Node.js Bot sample described on  Facebook documentation (https://developers.facebook.com/docs/messenger-platform/implementation#subscribe_app_pages)
 
-Setup Facebook Messenger Bot configuration in the Configuration.swift file
 
 Usage:
 
