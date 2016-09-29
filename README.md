@@ -26,6 +26,9 @@ The Api are super simple.  You only need to initialize a KituraBotFacebookMessen
 
 
 ## Usage
+## A simple Echo Bot exposed over Facebook Messenger channel in both Syncronous and Asyncronous way
+
+Please view KituaBotFrontendEchoSample Swift Kitura sample project at https://github.com/JacopoMangiavacchi/KituraBotFrontendEchoSample
 
     //1. Instanciate KituraBot and implement BOT logic
     let bot = KituraBot(router: router) { (channelName: String, senderId: String, message: String) -> String? in
