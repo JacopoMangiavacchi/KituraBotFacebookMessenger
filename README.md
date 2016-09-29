@@ -6,7 +6,23 @@ Swift Kitura Facebook Messenger Webhook implemented according to the KituraBot m
 Please view KituraBot first at  https://github.com/JacopoMangiavacchi/KituraBot
 
 
-This is a porting on Swift Kitura framework of the Node.js Bot sample described on  Facebook documentation (https://developers.facebook.com/docs/messenger-platform/implementation#subscribe_app_pages)
+Please see Facebook documentation for configuration at https://developers.facebook.com/docs/messenger-platform/implementation#subscribe_app_pages
+
+
+## API
+
+This Swift class is implemented according to the KituraBotProtocol defined in the Kitura Bot Package.
+
+The Api are super simple.  You only need to initialize a KituraBotFacebookMessenger with all the specific Facebook Messenger parameters (appSecret, validationTokenand pageAccessToken, webHookPath) and pass this object to the KituraBot addChannel method
+
+    /// Initialize a `KituraBotFacebookMessenger` instance.
+    ///
+    /// - Parameter appSecret: App Secret can be retrieved from the App Dashboard.
+    /// - Parameter validationToken: Arbitrary value used to validate a webhook.
+    /// - Parameter pageAccessToken: Generate a page access token for your page from the App Dashboard.
+    /// - Parameter webHookPath: URI for the webhook.
+    public init(appSecret: String, validationToken: String, pageAccessToken: String, webHookPath: String)
+
 
 
 ## Usage
