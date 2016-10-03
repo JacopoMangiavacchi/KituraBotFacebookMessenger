@@ -22,7 +22,7 @@ import KituraBot
 public class KituraBotFacebookMessenger : KituraBotProtocol {
     public var channelName: String?
     public var botProtocolMessageNotificationHandler: BotInternalMessageNotificationHandler?
-    
+
     private let appSecret: String
     private let validationToken: String
     public let pageAccessToken: String
@@ -50,7 +50,7 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
     }
     
     //Send a text message using the internal Send API.
-    public func sendTextMessage(recipientId: String, messageText: String) {
+    public func sendTextMessage(recipientId: String, messageText: String, context: [String: Any]?) {
         let messageData = ["recipient" : ["id" : recipientId], "message" : ["text" : messageText]]
         
         callSendAPI(messageData: messageData)
@@ -183,7 +183,7 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
             
             // When an authentication is received, we'll send a message back to the sender
             // to let them know it was successful.
-            sendTextMessage(recipientId: senderID, messageText: "Authentication successful")
+            sendTextMessage(recipientId: senderID, messageText: "Authentication successful", context: nil)
         }
         else {
             Log.debug("Unable to get sender id from received authentication.")
@@ -228,14 +228,17 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
                 case "receipt":
                     sendReceiptMessage(recipientId: senderID)
                 default:
-                    botProtocolMessageNotificationHandler?(channelName!, senderID, msgText)
+                    //No Context from Facebook Messenger webhook channel
+                    if let (responseMessage, _) = botProtocolMessageNotificationHandler?(channelName!, senderID, msgText, nil) {
+                        sendTextMessage(recipientId: senderID, messageText: responseMessage, context: nil)
+                    }
                 }
             }
             else if let _ = message["message"]["attachments"].string {
-                sendTextMessage(recipientId: senderID, messageText: "Message with attachment received")
+                sendTextMessage(recipientId: senderID, messageText: "Message with attachment received", context: nil)
             }
             else {
-                sendTextMessage(recipientId: senderID, messageText: "Message unexpected received")
+                sendTextMessage(recipientId: senderID, messageText: "Message unexpected received", context: nil)
                 
                 Log.debug("Received a message with neither text or attachment")
                 print("Received a message with neither text or attachment")
