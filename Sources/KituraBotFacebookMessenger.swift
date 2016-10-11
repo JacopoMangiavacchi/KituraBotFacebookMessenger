@@ -49,15 +49,20 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
         router.post(webHookPath, handler: processRequestHandler)
     }
     
+    public func sendMessage(_ message: KituraBotMessage) {
+        sendFBTextMessage(recipientId: message.user.userId, messageText: message.messageText, context: message.context)
+    }
+
+    
+    //PRIVATE REST API Handlers
+    
     //Send a text message using the internal Send API.
-    public func sendTextMessage(recipientId: String, messageText: String, context: [String: Any]?) {
+    private func sendFBTextMessage(recipientId: String, messageText: String, context: KituraBotContext?) {
         let messageData = ["recipient" : ["id" : recipientId], "message" : ["text" : messageText]]
         
         callSendAPI(messageData: messageData)
     }
-    
-    
-    //PRIVATE REST API Handlers
+
     
     /// Use your own validation token. Check that the token used in the Webhook
     /// setup is the same token used here.
@@ -183,7 +188,7 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
             
             // When an authentication is received, we'll send a message back to the sender
             // to let them know it was successful.
-            sendTextMessage(recipientId: senderID, messageText: "Authentication successful", context: nil)
+            sendFBTextMessage(recipientId: senderID, messageText: "Authentication successful", context: nil)
         }
         else {
             Log.debug("Unable to get sender id from received authentication.")
@@ -229,16 +234,21 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
                     sendReceiptMessage(recipientId: senderID)
                 default:
                     //No Context from Facebook Messenger webhook channel
-                    if let (responseMessage, _) = botProtocolMessageNotificationHandler?(channelName!, senderID, msgText, nil) {
-                        sendTextMessage(recipientId: senderID, messageText: responseMessage, context: nil)
+                    let sender = KituraBotUser(userId: senderID, channel: channelName!)
+                    
+                    //facebook messenger channel webhook doesn't have context
+                    let message = KituraBotMessage(messageType: .request, user: sender, messageText: msgText, context: nil)
+                    
+                    if let responseMessage = botProtocolMessageNotificationHandler?(message) {
+                        sendFBTextMessage(recipientId: senderID, messageText: responseMessage.messageText, context: nil)
                     }
                 }
             }
             else if let _ = message["message"]["attachments"].string {
-                sendTextMessage(recipientId: senderID, messageText: "Message with attachment received", context: nil)
+                sendFBTextMessage(recipientId: senderID, messageText: "Message with attachment received", context: nil)
             }
             else {
-                sendTextMessage(recipientId: senderID, messageText: "Message unexpected received", context: nil)
+                sendFBTextMessage(recipientId: senderID, messageText: "Message unexpected received", context: nil)
                 
                 Log.debug("Received a message with neither text or attachment")
                 print("Received a message with neither text or attachment")
@@ -255,5 +265,3 @@ public class KituraBotFacebookMessenger : KituraBotProtocol {
     private func receivedDeliveryConfirmation(message: JSON) {}
     private func receivedPostback(message: JSON) {}
 }
-
-
